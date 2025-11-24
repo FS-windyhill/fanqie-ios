@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>拍拍西红柿 - AI番茄钟</title>
+
+  <!-- 这两行是 PWA 必备 -->
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/fanqie/icons/icon-192.png">
+  
+  <!-- 下面这两行是 iPhone 专用的（可加可不加） -->
+  <link rel="apple-touch-icon" href="/icon192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="stylesheet" href="style.css" />
+  <!-- 电子管字体 -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>拍拍西红柿</h1>
+      <div>
+        <button id="api-btn" class="icon-btn">⚡</button>
+        <button id="history-btn" class="icon-btn">📜</button>
+        <button id="appearance-btn" class="icon-btn">🎨</button>
+        <button id="settings-btn" class="icon-btn">⚙</button>
+      </div>
+    </div>
+
+    <!-- 头像 + 环绕进度条 -->
+    <div class="avatar-wrapper">
+      <img id="avatar" src="avatar.jpg" alt="西红柿" class="avatar" />
+      <svg class="progress-ring" width="180" height="180" viewBox="0 0 180 180">
+        <circle class="progress-ring__circle-bg" stroke="#ffe0e0" stroke-width="6" fill="transparent" r="84" cx="90" cy="90"/>
+        <circle class="progress-ring__circle" stroke="var(--theme-color)" stroke-width="6" fill="transparent" r="84" cx="90" cy="90" stroke-linecap="round" transform="rotate(-90 90 90)"/>
+      </svg>
+    </div>
+    
+    <!-- 提示文字 -->
+    <div id="thinking" class="thinking">拍我一下试试～</div>
+
+    <!-- 电子管时间 -->
+    <div id="timer-text" class="digital-timer">25:00</div>
+
+    <!-- 任务输入 -->
+    <div class="task-input">
+      <input type="text" id="task-name" placeholder="现在要完成什么任务呢？" />
+    </div>
+
+    <!-- 控制按钮（并排） -->
+    <div class="control-group">
+      <button id="start-btn" class="control-btn">开始专注</button>
+      <button id="reset-btn" class="control-btn reset-btn">清零</button>
+    </div>
+
+    <!-- 统计 -->
+    <div id="stats" class="stats">今日已完成 0 个番茄</div>
+
+    <!-- ==================== 设置面板 ==================== -->
+    <div id="settings-panel" class="settings-panel">
+      <h3>编辑人设</h3>
+      <p style="font-weight: normal; font-size: 13px; margin: 5px 0 8px 0; color: #666;">
+        1、注意隐私保护，请不要上传敏感信息<br>
+        2、人设会缓存在浏览器中，但偶尔也可能消失，所以请做好备份哦
+      </p>
+      <div class="textarea-wrapper">
+        <textarea id="personality" placeholder=
+        "-姓名：
+-性别：
+-身份：
+-性格：
+-对用户的称呼：
+-和用户的关系：" maxlength="1500"></textarea>
+        <span id="char-count" class="char-count">您还可以输入 1500 字</span>
+      </div>
+
+      <h3 style="margin-top: 20px;">更换头像</h3>
+      <p2 style="font-weight: normal; font-size: 13px; margin: 5px 0 8px 0; color: #666;">
+      事先裁剪成正方形，效果更好哦
+      </p2>
+      <div class="setting-row" style="align-items: center;">
+        <label>头像：</label>
+        <button id="change-avatar-btn" class="small-btn">选择图片</button>
+        <input type="file" id="avatar-upload" accept="image/*" style="display:none;">
+        <div id="avatar-preview" style="margin-left: 12px;">
+          <img src="avatar.jpg" style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid #eee;">
+        </div>
+      </div>
+
+      <!-- 恢复默认头像按钮（居中） -->
+      <div class="setting-row" style="justify-content: center; margin-top: 12px;">
+        <button id="reset-avatar-btn" class="small-btn">恢复默认头像</button>
+      </div>
+
+      <!-- 自定义番茄时间 -->
+      <h3 style="margin-top: 20px;">自定义番茄时间</h3>
+      <div class="setting-row">
+        <label>专注时长<br>（分钟）</label>
+        <input type="number" id="work-minutes" min="1" max="120" value="25" style="width:70px;">
+      </div>
+
+      <div class="btn-group">
+        <button id="save-btn">保存</button>
+        <button id="close-btn">关闭</button>
+      </div>
+    </div>
+
+    <!-- ==================== 外观面板 ==================== -->
+    <div id="appearance-panel" class="settings-panel" style="display:none; right: 100px;">
+      <h3>外观设置</h3>
+
+      <!-- 页面背景 -->
+      <div class="setting-item">
+        <label>页面背景：</label>
+        <select id="bg-select">
+          <option value="gradient1">碧海蓝天</option>
+          <option value="gradient2">浆果梅子</option>
+          <option value="gradient3">清新薄荷</option>
+          <option value="gradient4">纯白背景</option>
+          <option value="gradient5">恢复默认</option>
+          <option value="custom">自定义…</option>
+        </select>
+        <input type="file" id="bg-upload" accept="image/*" style="display:none;">
+      </div>
+
+      <!-- 新增：独立上传按钮 -->
+      <div class="setting-item" style="margin-top: 8px;">
+        <label></label> <!-- 占位，保持对齐 -->
+        <button id="bg-upload-btn" class="small-btn">选择背景图</button>
+        <input type="file" id="bg-upload" accept="image/*" style="display:none;">
+      </div>
+
+      <!-- 窗口颜色 + 透明度 -->
+      <div class="setting-row">
+        <label>窗口颜色：</label>
+        <input type="color" id="container-bg-color" value="#ffffff">
+        <input type="range" id="container-opacity" min="70" max="100" value="100">
+        <span id="opacity-value">100%</span>
+      </div>
+
+      <!-- 主题字体色 -->
+      <div class="setting-row">
+        <label>主题字体色：</label>
+        <input type="color" id="theme-color" value="#ff6b6b">
+      </div>
+
+      <div class="btn-group">
+        <button id="appearance-save">保存</button>
+        <button id="appearance-close">关闭</button>
+      </div>
+
+      <!-- ====================== 页面底部声明 ====================== -->
+      <footer class="page-footer">
+        <p>
+          拍拍西红柿 <strong>v1.2.0 25/10/31</strong>
+        </p>
+        <p>
+          作者：<a href="https://github.com/FS-windyhill" target="_blank" rel="noopener">FS-windyhill</a>
+        </p>
+        <p class="license">
+          本作品采用 <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.zh" target="_blank" rel="noopener">
+            CC BY-NC 4.0
+          </a> 许可协议发布
+        </p>
+      </footer>
+      <!-- ====================== /页面底部声明 ====================== -->
+    </div>
+
+    <!-- ==================== 历史记录面板 ==================== -->
+    <div id="history-panel" class="settings-panel" style="display:none; right: 55px;">
+      <h3>历史番茄记录</h3>
+      <div id="history-list"></div>
+      <div class="btn-group">
+        <button id="clear-history">清空</button>
+        <button id="copy-today" class="copy-btn">复制当天</button>
+        <button id="copy-all" class="copy-btn">复制全部</button>
+        <button id="close-history">关闭</button>
+      </div>
+    </div>
+
+    <!-- ==================== API配置面板 ==================== -->
+    <div id="api-panel" class="settings-panel" style="display:none; right: 55px;">
+      <h3>API 配置</h3>
+      <div class="api-field">
+        <label for="api-provider">模型提供商：</label>
+        <select id="api-provider">
+          <option value="openai">OpenAI 兼容（如 SiliconFlow）</option>
+          <option value="claude">Claude (Anthropic)</option>
+          <option value="gemini">Gemini (Google)</option>
+          <div id="api-hint" class="api-hint"></div>
+        </select>
+      </div>
+      <div class="setting-item">
+        <label>API 地址：<br>记得在地址最后加（可复制）：<br>/v1/chat/completions</label>
+        <input type="url" id="api-url" placeholder="https://api.siliconflow.cn/v1/chat/completions" style="width:100%;padding:6px;">
+      </div>
+      <div class="setting-item">
+        <label>API 密钥：</label>
+        <input type="password" id="api-key" placeholder="sk-..." style="width:100%;padding:6px;">
+      </div>
+      <div class="setting-item">
+        <label>模型名称：</label>
+        <input type="text" id="api-model" placeholder="deepseek-ai/DeepSeek-V3.2-Exp" style="width:100%;padding:6px;">
+      </div>
+
+      <div class="api-panel-footer">
+        <div class="btn-group">
+          <button id="api-save-test">测试并保存</button>
+          <button id="api-default">使用默认</button>
+          <button id="api-close">关闭</button>
+        </div>
+        <span id="api-status">未测试</span>
+      </div>
+      
+    </div>
+  </div>
+
+
+
+  <script src="script.js"></script>
+</body>
+</html>
